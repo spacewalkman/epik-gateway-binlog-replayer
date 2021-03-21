@@ -1,19 +1,6 @@
 # Epik knowledge graph gateway job
 
-## How to submit domain-triple-files----> log files transformation job to spark on yarn.
-
-Follow the instructions of [nebula-java](https://github.com/vesoft-inc/nebula-java) to build and install nebula-java client.
-
-```bash
-${SPARK_HOME}/bin/spark-submit --class com.epik.kbgateway.DomainKnowledge2LogFile --master yarn --deploy-mode cluster --driver-memory 256M --driver-java-options "-Dspark.testing.memory=536870912" --executor-memory 6g  --num-executors 4 --executor-cores 2 /root/epik-kbgateway-job.jar -f /cn_dbpedia_input/baike_triples.txt -d cn_dbpedia -t /epik_log_output
-```
-
-```bash
-${SPARK_HOME}/bin/spark-submit --class com.epik.kbgateway.LogFileReplayer --master yarn --deploy-mode cluster --driver-memory 256M --driver-java-options "-Dspark.testing.memory=536870912" --executor-memory 4g  --num-executors 4 --executor-cores 2 /root/epik-kbgateway-job.jar -d cn_dbpedia -h localhost:55020,localhost:55022,localhost:9669 -b 100 -i /epik_log_output -q /ngql_dump -s 1 -t 4000
-```
-
-
-# How to restore cn_dbpedia Nebula Graph database?
+# How to replay binary log to Nebula Graph?
 
 1. Install docker and docker-compose, make sure the following cmd works.
 ```bash
@@ -75,7 +62,18 @@ CREATE TAG IF NOT EXISTS domain_entity(domain_predicate string);
 CREATE EDGE IF NOT EXISTS predicate(domain_predicate string);
 ```
 
-and then, restore data, _this may take hours_.
+## How to submit domain-triple-files----> log files transformation job to spark on yarn.
+
+Follow the instructions of [nebula-java](https://github.com/vesoft-inc/nebula-java) to build and install nebula-java client.
+
+```bash
+${SPARK_HOME}/bin/spark-submit --class com.epik.kbgateway.LogFileReplayer --master yarn --deploy-mode cluster --driver-memory 256M --driver-java-options "-Dspark.testing.memory=536870912" --executor-memory 4g  --num-executors 4 --executor-cores 2 /root/epik-logreplayer-job.jar -d cn_dbpedia -h localhost:55020,localhost:55022,localhost:9669 -b 100 -i /epik_log_output -q /ngql_output -s 1 -t 10000
+```
+
+When this spark job is done, Nebula Graph should be populated with triples decoded from log files. BTW, ngql script file will be generated in the dir `ngql_output`(option value of `-q`) on hdfs.
+
+### Alternative way of replay log.
+When ngql scripts have been generated, we could download to local dir, and use the following bash script to replay them on Nebula Graph(PS: _this may take hours_).
 
 ```bash
 for file in $(ls /ngql_output/part-* | sort)
@@ -86,8 +84,7 @@ do
 done
 ```
 
-
-4. Query data back using ngql.
+## How to verify data in Nebula Graph.
 
 ```sql
 GO 1 STEPS FROM hash("书籍") OVER predicate BIDIRECT YIELD predicate.domain_predicate;
