@@ -223,10 +223,12 @@ And Vertex is conceptually a tuple2 of <VID,TagList>, which VID is a integer ass
 
 
 A Tag is conceptually a tuple2 of <TagName, PropertiesList>, which TagName is Tag' name(variable length, so its name's size should be encoded inside), and PropertiesList is a collection of Property, which defined as:
-1.	Property Name: name of the property.
-2.	Property Type：support common data type, including: integer、double、string and timestamp. When of type string, since it is variable length, an extra size field will be encoded to mark its boundary.
-3.	Property Value: value of the property according to Property Type.
-4.	Property Default Value： default value if the value is absent.
+1.	Property Name Size: length of property name.
+2.	Property Name: name of the property.
+3.	Property Type：support common data type, including: integer、double、string and timestamp. When of type string, since it is variable length, an extra size field will be encoded to mark its boundary.
+4.  HasDefaultValue: whether has default value. when in schema definition and HasDefaultValue=1, then the following 2 fields: __Property Default Value Size__ and __Property Default Value__ must be provided. when in data definition, HasDefaultValue is meaningless, keeping it is just to keep format consistent,
+5.	Property [Default/Actual] Value Size: value of the property according to Property Type.
+6.	Property [Default/Actual] Value: value of the property according to Property Type.
 In order to support __PropertiesList__, an extras __Properties Szie__ field to count how many properties a Tag has.
 
 
@@ -245,11 +247,11 @@ Vertex Data Log is composed of the following:
 1. Vertex Domain Value Size: value's size of the domain entity,to mark its boundary.
 2. Vertex Domain Value： domain entity's value，must be of string type.
 3. VID Generator Type: the function we used to make the domain entity to VID conversion. we use __Hash__.
-4. TagList: a collection of Tag，a Tag is tuple5 of<Property Name Size, Property Name, Property Type, Property Value Size, Property Value>, which every __Size__ field is used to mark the boundary of the corresponding __Value__ field. 
+4. TagList: a collection of Tag，a Tag is tuple6 of<Property Name Size, Property Name, Property Type, HasDefaultValue, Property Value Size, Property Value>, which every __Size__ field is used to mark the boundary of the corresponding __Value__ field. 
 
 ### Edge Data Log
 __Edge Data Log__ is used to manipulate edge's data.
 ![data_edge](images/data_edge.png)
 It bears much resemblance with __Vertex Data Log__ with minor differences:
 1.	Edge is connected by a __From Vertex__ and a __To Vertex__, which require __From Vertex Domain Value__ and __To Vertex Domain Value__，and corresponding Value Sizes fields.
-2.	Edge does not support multi-Tag，so does not need introduce filed designed for multi-Tags，Edge's properties just lay one after another，every property is tuple5 of <Property Name Size, Property Name, Property Type, Property Value Size, Property Value>.
+2.	Edge does not support multi-Tag，so does not need introduce filed designed for multi-Tags，Edge's properties just lay one after another，every property is tuple6 of <Property Name Size, Property Name, Property Type, HasDefaultValue, Property Value Size, Property Value>.
